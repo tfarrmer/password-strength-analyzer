@@ -60,7 +60,7 @@ def check_password():
         result_label.configure(text="Strong Password", text_color="green")
         suggestion_label.configure(text="")
     else:
-        result_label.configure(text="Excellent Password", text_color="blue")
+        result_label.configure(text="Perfect Password", text_color="pink")
         suggestion_label.configure(text="")
 
     if save_var.get():
