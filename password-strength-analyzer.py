@@ -1,190 +1,104 @@
-import math
+import customtkinter as ctk
+from tkinter import messagebox
 import re
-from typing import Dict, List
+import hashlib
+import random
+import string
 
-COMMON_PASSWORDS = {
-    "password",
-    "123456",
-    "123456789",
-    "qwerty",
-    "abc123",
-    "letmein",
-    "welcome",
-    "admin",
-    "iloveyou",
-    "password1",
-}
+ctk.set_appearance_mode("Dark")
+ctk.set_default_color_theme("blue")
 
-KEYBOARD_PATTERNS = [
-    "qwerty",
-    "asdfgh",
-    "zxcvbn",
-    "123456",
-    "abcdef",
-]
+app = ctk.CTk()
+app.title("Password Strength Checker")
+app.geometry("500x450")
 
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
 
-def calculate_charset_size(password: str) -> int:
-    """Estimate the possible character pool used in the password."""
-    charset = 0
+def suggest_password(password):
+    suggestions = []
+    if not re.search(r"[A-Z]", password):
+        suggestions.append(random.choice(string.ascii_uppercase))
+    if not re.search(r"[a-z]", password):
+        suggestions.append(random.choice(string.ascii_lowercase))
+    if not re.search(r"[0-9]", password):
+        suggestions.append(random.choice(string.digits))
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        suggestions.append(random.choice("!@#$%^&*()"))
+    while len(password) + len(suggestions) < 8:
+        suggestions.append(random.choice(string.ascii_letters + string.digits + "!@#$%^&*()"))
+    return password + ''.join(suggestions)
 
-    if re.search(r"[a-z]", password):
-        charset += 26
+def check_password():
+    password = password_entry.get()
+    strength = 0
+
+    if len(password) >= 12:
+        strength += 2
+    elif len(password) >= 8:
+        strength += 1
+    
     if re.search(r"[A-Z]", password):
-        charset += 26
-    if re.search(r"\d", password):
-        charset += 10
-    if re.search(r"[^A-Za-z0-9]", password):
-        charset += 32
-
-    return max(charset, 1)
-
-
-def calculate_entropy(password: str) -> float:
-    """Estimate password entropy in bits."""
-    if not password:
-        return 0.0
-
-    charset_size = calculate_charset_size(password)
-    return len(password) * math.log2(charset_size)
-
-
-def has_repeated_pattern(password: str) -> bool:
-    """Check for repeated chunks like abcabc or 1212."""
-    lowered = password.lower()
-    for size in range(1, len(lowered) // 2 + 1):
-        if len(lowered) % size == 0:
-            chunk = lowered[:size]
-            if chunk * (len(lowered) // size) == lowered:
-                return True
-    return False
-
-
-def analyze_password(password: str) -> Dict[str, object]:
-    """Return a detailed password strength analysis."""
-    feedback: List[str] = []
-    score = 0
-    lowered = password.lower()
-
-    if not password:
-        return {
-            "score": 0,
-            "strength": "Very Weak",
-            "entropy_bits": 0.0,
-            "estimated_crack_time": "Instant",
-            "feedback": ["Enter a password to analyze."],
-        }
-
-    # Length scoring
-    length = len(password)
-    if length >= 16:
-        score += 4
-    elif length >= 12:
-        score += 3
-    elif length >= 8:
-        score += 2
-    else:
-        feedback.append("Use at least 12 characters; 16+ is even better.")
-
-    # Character variety
+        strength += 1
     if re.search(r"[a-z]", password):
-        score += 1
+        strength += 1
+    if re.search(r"[0-9]", password):
+        strength += 1
+    if re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        strength += 1
+
+    progress_bar.set(strength / 6)
+    
+    if strength <= 2:
+        result_label.configure(text="Weak Password", text_color="red")
+        suggestion = suggest_password(password)
+        suggestion_label.configure(text=f"Suggestion: {suggestion}")
+    elif strength <= 4:
+        result_label.configure(text="Moderate Password", text_color="orange")
+        suggestion_label.configure(text="Try adding symbols or numbers to improve strength")
+    elif strength <= 5:
+        result_label.configure(text="Strong Password", text_color="green")
+        suggestion_label.configure(text="")
     else:
-        feedback.append("Add lowercase letters.")
+        result_label.configure(text="Excellent Password", text_color="blue")
+        suggestion_label.configure(text="")
 
-    if re.search(r"[A-Z]", password):
-        score += 1
+    if save_var.get():
+        hashed = hash_password(password)
+        with open("passwords.txt", "a") as file:
+            file.write(hashed + "\n")
+        messagebox.showinfo("Saved", "Password saved securely!")
+
+def toggle_password():
+    if password_entry.cget('show') == "*":
+        password_entry.configure(show="")
+        toggle_button.configure(text="Hide")
     else:
-        feedback.append("Add uppercase letters.")
+        password_entry.configure(show="*")
+        toggle_button.configure(text="Show")
 
-    if re.search(r"\d", password):
-        score += 1
-    else:
-        feedback.append("Add numbers.")
+# UI elements
+password_entry = ctk.CTkEntry(app, placeholder_text="Enter Password", show="*")
+password_entry.pack(pady=20, padx=20, fill="x")
 
-    if re.search(r"[^A-Za-z0-9]", password):
-        score += 2
-    else:
-        feedback.append("Add special characters like !, @, or #.")
+toggle_button = ctk.CTkButton(app, text="Show", width=60, command=toggle_password)
+toggle_button.pack(pady=5)
 
-    # Penalties for common weaknesses
-    if lowered in COMMON_PASSWORDS:
-        score -= 4
-        feedback.append("This is a very common password and is unsafe.")
+save_var = ctk.BooleanVar()
+save_checkbox = ctk.CTkCheckBox(app, text="Save Password Securely", variable=save_var)
+save_checkbox.pack()
 
-    if any(pattern in lowered for pattern in KEYBOARD_PATTERNS):
-        score -= 2
-        feedback.append("Avoid common keyboard patterns like qwerty or 123456.")
+check_button = ctk.CTkButton(app, text="Check Strength", command=check_password)
+check_button.pack(pady=10)
 
-    if re.search(r"(.)\1\1", password):
-        score -= 2
-        feedback.append("Avoid repeating the same character multiple times.")
+progress_bar = ctk.CTkProgressBar(app, width=350)
+progress_bar.set(0)
+progress_bar.pack(pady=10)
 
-    if has_repeated_pattern(password):
-        score -= 2
-        feedback.append("Avoid repeated patterns like abcabc or 1212.")
+result_label = ctk.CTkLabel(app, text="")
+result_label.pack(pady=5)
 
-    if password.isalpha() or password.isdigit():
-        score -= 2
-        feedback.append("Do not use only letters or only numbers.")
+suggestion_label = ctk.CTkLabel(app, text="", text_color="lightblue")
+suggestion_label.pack(pady=5)
 
-    entropy = calculate_entropy(password)
-
-    if entropy >= 80 and score >= 8:
-        strength = "Very Strong"
-    elif entropy >= 60 and score >= 6:
-        strength = "Strong"
-    elif entropy >= 45 and score >= 4:
-        strength = "Moderate"
-    elif entropy >= 28 and score >= 2:
-        strength = "Weak"
-    else:
-        strength = "Very Weak"
-
-    # Very rough offline cracking estimate based on entropy
-    if entropy < 28:
-        crack_time = "Seconds to minutes"
-    elif entropy < 36:
-        crack_time = "Hours to days"
-    elif entropy < 45:
-        crack_time = "Weeks to months"
-    elif entropy < 60:
-        crack_time = "Months to years"
-    elif entropy < 80:
-        crack_time = "Many years"
-    else:
-        crack_time = "Extremely long time"
-
-    return {
-        "score": max(score, 0),
-        "strength": strength,
-        "entropy_bits": round(entropy, 2),
-        "estimated_crack_time": crack_time,
-        "feedback": feedback if feedback else ["Good job. This password looks strong."],
-    }
-
-
-def main() -> None:
-    print("Password Strength Analyzer")
-    print("Type 'quit' to exit.\n")
-
-    while True:
-        password = input("Enter a password to analyze right now or else young boy: ")
-        if password.lower() == "quit":
-            print("Goodbye.")
-            break
-
-        result = analyze_password(password)
-        print("\n--- Analysis ---")
-        print(f"Strength: {result['strength']}")
-        print(f"Score: {result['score']}")
-        print(f"Entropy: {result['entropy_bits']} bits")
-        print(f"Estimated crack time: {result['estimated_crack_time']}")
-        print("Feedback:")
-        for item in result["feedback"]:
-            print(f"- {item}")
-        print()
-
-
-if __name__ == "__main__":
-    main()
+app.mainloop()
