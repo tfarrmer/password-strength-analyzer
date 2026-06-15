@@ -1,10 +1,10 @@
-🔐 Password Strength Checker:
+ Password Strength Checker:
 
 A Python application that evaluates password security based on length, character diversity, and overall complexity. The program provides real-time feedback on password strength and includes a modern graphical interface built with CustomTkinter.
 
 This tool demonstrates practical password validation techniques and basic security principles such as complexity analysis and secure hashing.
 
-🚀 Features:
+Features:
 
 Password strength evaluation (Weak, Moderate, Strong, Perfect)
 
