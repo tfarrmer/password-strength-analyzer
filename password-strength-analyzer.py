@@ -114,10 +114,6 @@ password_entry.pack(pady=20, padx=20, fill="x")
 toggle_button = ctk.CTkButton(app, text="Show", width=60, command=toggle_password)
 toggle_button.pack(pady=5)
 
-save_var = ctk.BooleanVar()
-save_checkbox = ctk.CTkCheckBox(app, text="Save Password Securely", variable=save_var)
-save_checkbox.pack()
-
 check_button = ctk.CTkButton(app, text="Check Strength", command=check_password)
 check_button.pack(pady=10)
 
@@ -130,5 +126,8 @@ result_label.pack(pady=5)
 
 suggestion_label = ctk.CTkLabel(app, text="", text_color="lightblue")
 suggestion_label.pack(pady=5)
+
+breach_label = ctk.CTkLabel(app, text="")
+breach_label.pack(pady=5)
 
 app.mainloop()
