@@ -4,6 +4,7 @@ import re
 import hashlib
 import random
 import string
+import requests
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
@@ -14,6 +15,23 @@ app.geometry("500x450")
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
+
+def check_hibp(password):
+    sha1_hash = hashlib.sha1(password.encode()).hexdigest().upper()
+    prefix, suffix = sha1_hash[:5], sha1_hash[5:]
+
+    try:
+        response = requests.get(f"https://api.pwnedpasswords.com/range/{prefix}", timeout=5)
+        response.raise_for_status()
+    except requests.RequestException:
+        return None
+
+    for line in response.text.splitlines():
+        hash_suffix, count = line.split(':')
+        if hash_suffix == suffix:
+            return int(count)
+    return 0
+
 
 def suggest_password(password):
     suggestions = []
@@ -27,7 +45,17 @@ def suggest_password(password):
         suggestions.append(random.choice("!@#$%^&*()"))
     while len(password) + len(suggestions) < 8:
         suggestions.append(random.choice(string.ascii_letters + string.digits + "!@#$%^&*()"))
-    return password + ''.join(suggestions)
+
+    candidate = password + ''.join(suggestions)
+
+    max_attempts = 5
+    for attempt in range(max_attempts):
+        breach_count = check_hibp(candidate)
+        if breach_count == 0 or breach_count is None:
+            return candidate
+        candidate += random.choice(string.ascii_letters + string.digits + "!@#$%^&*()")
+
+    return candidate
 
 def check_password():
     password = password_entry.get()
@@ -58,16 +86,30 @@ def check_password():
         suggestion_label.configure(text="Try adding symbols or numbers to improve strength")
     elif strength <= 5:
         result_label.configure(text="Strong Password", text_color="green")
-        suggestion_label.configure(text="")
+        missing = []
+        if not re.search(r"[A-Z]", password):
+            missing.append("an uppercase letter")
+        if not re.search(r"[0-9]", password):
+            missing.append("a number")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+            missing.append("a symbol")
+        if len(password) < 12:
+            missing.append("more length (12+ characters)")
+        if missing:
+            suggestion_label.configure(text=f"Add {missing[0]} for a Perfect score")
+        else:
+            suggestion_label.configure(text="")
     else:
         result_label.configure(text="Perfect Password", text_color="pink")
         suggestion_label.configure(text="")
 
-    if save_var.get():
-        hashed = hash_password(password)
-        with open("passwords.txt", "a") as file:
-            file.write(hashed + "\n")
-        messagebox.showinfo("Saved", "Password saved securely!")
+    breach_count = check_hibp(password)
+    if breach_count is None:
+        breach_label.configure(text="Couldn't reach breach database (check connection)", text_color="gray")
+    elif breach_count > 0:
+        breach_label.configure(text=f"⚠ Found in {breach_count:,} known breaches!", text_color="red")
+    else:
+        breach_label.configure(text="✓ Not found in known breaches", text_color="green")
 
 def toggle_password():
     if password_entry.cget('show') == "*":
@@ -84,10 +126,6 @@ password_entry.pack(pady=20, padx=20, fill="x")
 toggle_button = ctk.CTkButton(app, text="Show", width=60, command=toggle_password)
 toggle_button.pack(pady=5)
 
-save_var = ctk.BooleanVar()
-save_checkbox = ctk.CTkCheckBox(app, text="Save Password Securely", variable=save_var)
-save_checkbox.pack()
-
 check_button = ctk.CTkButton(app, text="Check Strength", command=check_password)
 check_button.pack(pady=10)
 
@@ -100,5 +138,8 @@ result_label.pack(pady=5)
 
 suggestion_label = ctk.CTkLabel(app, text="", text_color="lightblue")
 suggestion_label.pack(pady=5)
+
+breach_label = ctk.CTkLabel(app, text="")
+breach_label.pack(pady=5)
 
 app.mainloop()
