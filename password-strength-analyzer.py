@@ -16,7 +16,7 @@ app.geometry("500x450")
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-def check_hibp(password)
+def check_hibp(password):
     sha1_hash = hashlib.sha1(password.encode()).hexdigest().upper()
     prefix, suffix = sha1_hash[:5], sha1_hash[5:]
 
@@ -25,13 +25,13 @@ def check_hibp(password)
         response.raise_for_status()
     except requests.RequestException:
         return None
-    
-    for line in resposnse.text.splitlines():
+
+    for line in response.text.splitlines():
         hash_suffix, count = line.split(':')
         if hash_suffix == suffix:
             return int(count)
-        return 0
-        
+    return 0
+
 
 def suggest_password(password):
     suggestions = []
@@ -45,15 +45,15 @@ def suggest_password(password):
         suggestions.append(random.choice("!@#$%^&*()"))
     while len(password) + len(suggestions) < 8:
         suggestions.append(random.choice(string.ascii_letters + string.digits + "!@#$%^&*()"))
-    
+
     candidate = password + ''.join(suggestions)
 
     max_attempts = 5
     for attempt in range(max_attempts):
         breach_count = check_hibp(candidate)
-        if breach_coount == 0 or breach_count is None:
+        if breach_count == 0 or breach_count is None:
             return candidate
-        candidae += random.choice(string.ascii_letters + string.digits + "!@#$%^&*()")
+        candidate += random.choice(string.ascii_letters + string.digits + "!@#$%^&*()")
 
     return candidate
 
@@ -113,33 +113,3 @@ def check_password():
 
 def toggle_password():
     if password_entry.cget('show') == "*":
-        password_entry.configure(show="")
-        toggle_button.configure(text="Hide")
-    else:
-        password_entry.configure(show="*")
-        toggle_button.configure(text="Show")
-
-# UI elements
-password_entry = ctk.CTkEntry(app, placeholder_text="Enter Password", show="*")
-password_entry.pack(pady=20, padx=20, fill="x")
-
-toggle_button = ctk.CTkButton(app, text="Show", width=60, command=toggle_password)
-toggle_button.pack(pady=5)
-
-check_button = ctk.CTkButton(app, text="Check Strength", command=check_password)
-check_button.pack(pady=10)
-
-progress_bar = ctk.CTkProgressBar(app, width=350)
-progress_bar.set(0)
-progress_bar.pack(pady=10)
-
-result_label = ctk.CTkLabel(app, text="")
-result_label.pack(pady=5)
-
-suggestion_label = ctk.CTkLabel(app, text="", text_color="lightblue")
-suggestion_label.pack(pady=5)
-
-breach_label = ctk.CTkLabel(app, text="")
-breach_label.pack(pady=5)
-
-app.mainloop()
