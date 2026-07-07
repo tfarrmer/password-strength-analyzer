@@ -45,7 +45,17 @@ def suggest_password(password):
         suggestions.append(random.choice("!@#$%^&*()"))
     while len(password) + len(suggestions) < 8:
         suggestions.append(random.choice(string.ascii_letters + string.digits + "!@#$%^&*()"))
-    return password + ''.join(suggestions)
+    
+    candidate = password + ''.join(suggestions)
+
+    max_attempts = 5
+    for attempt in range(max_attempts):
+        breach_count = check_hibp(candidate)
+        if breach_coount == 0 or breach_count is None:
+            return candidate
+        candidae += random.choice(string.ascii_letters + string.digits + "!@#$%^&*()")
+
+    return candidate
 
 def check_password():
     password = password_entry.get()
