@@ -4,6 +4,7 @@ import re
 import hashlib
 import random
 import string
+import requests
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
@@ -14,6 +15,23 @@ app.geometry("500x450")
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
+
+def check_hibp(password)
+    sha1_hash = hashlib.sha1(password.encode()).hexdigest().upper()
+    prefix, suffix = sha1_hash[:5], sha1_hash[5:]
+
+    try:
+        response = requests.get(f"https://api.pwnedpasswords.com/range/{prefix}", timeout=5)
+        response.raise_for_status()
+    except requests.RequestException:
+        return None
+    
+    for line in resposnse.text.splitlines():
+        hash_suffix, count = line.split(':')
+        if hash_suffix == suffix:
+            return int(count)
+        return 0
+        
 
 def suggest_password(password):
     suggestions = []
