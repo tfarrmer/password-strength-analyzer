@@ -86,7 +86,19 @@ def check_password():
         suggestion_label.configure(text="Try adding symbols or numbers to improve strength")
     elif strength <= 5:
         result_label.configure(text="Strong Password", text_color="green")
-        suggestion_label.configure(text="")
+        missing = []
+        if not re.search(r"[A-Z]", password):
+            missing.append("an uppercase letter")
+        if not re.search(r"[0-9]", password):
+            missing.append("a number")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+            missing.append("a symbol")
+        if len(password) < 12:
+            missing.append("more length (12+ characters)")
+        if missing:
+            suggestion_label.configure(text=f"Add {missing[0]} for a Perfect score")
+        else:
+            suggestion_label.configure(text="")
     else:
         result_label.configure(text="Perfect Password", text_color="pink")
         suggestion_label.configure(text="")
