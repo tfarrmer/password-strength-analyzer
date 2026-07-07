@@ -91,11 +91,13 @@ def check_password():
         result_label.configure(text="Perfect Password", text_color="pink")
         suggestion_label.configure(text="")
 
-    if save_var.get():
-        hashed = hash_password(password)
-        with open("passwords.txt", "a") as file:
-            file.write(hashed + "\n")
-        messagebox.showinfo("Saved", "Password saved securely!")
+    breach_count = check_hibp(password)
+    if breach_count is None:
+        breach_label.configure(text="Couldn't reach breach database (check connection)", text_color="gray")
+    elif breach_count > 0:
+        breach_label.configure(text=f"⚠ Found in {breach_count:,} known breaches!", text_color="red")
+    else:
+        breach_label.configure(text="✓ Not found in known breaches", text_color="green")
 
 def toggle_password():
     if password_entry.cget('show') == "*":
